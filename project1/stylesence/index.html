@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StyleSence | 3D Outfit Intelligence</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+
+    <style>
+        /* === CORE VARIABLES & RESET === */
+        :root {
+            --primary: #d4af37; /* Gold */
+            --bg-dark: #0a0a0a;
+            --surface: rgba(25, 25, 25, 0.6);
+            --text-main: #ffffff;
+            --text-muted: #a0a0a0;
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Montserrat', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* === 3D BACKGROUND CANVAS === */
+        #canvas-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        /* === VIEW MANAGEMENT === */
+        .view-section {
+            display: none;
+            min-height: 100vh;
+            width: 100%;
+            padding: 2rem;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease, transform 0.6s ease;
+        }
+
+        .view-section.active {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* === GLASSMORPHISM UI COMPONENTS === */
+        .glass-panel {
+            background: var(--surface);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+        }
+
+        /* === LOGIN PAGE === */
+        .login-container {
+            width: 100%;
+            max-width: 450px;
+            padding: 3rem;
+            text-align: center;
+            transform-style: preserve-3d;
+            perspective: 1000px;
+            animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0px) rotateX(0deg) rotateY(0deg); }
+            50% { transform: translateY(-15px) rotateX(2deg) rotateY(-2deg); }
+            100% { transform: translateY(0px) rotateX(0deg) rotateY(0deg); }
+        }
+
+        .logo-text {
+            font-size: 3rem;
+            font-weight: 900;
+            letter-spacing: 2px;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(45deg, #fff, var(--primary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0px 10px 20px rgba(0,0,0,0.5);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+            text-align: left;
+            position: relative;
+        }
+
+        .form-group i {
+            position: absolute;
+            top: 50%;
+            left: 15px;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+        }
+
+        input {
+            width: 100%;
+            padding: 15px 15px 15px 45px;
+            background: rgba(0,0,0,0.4);
+            border: 1px solid var(--glass-border);
+            color: white;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: var(--transition);
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 15px rgba(212, 175, 55, 0.3);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(45deg, #b38b22, var(--primary));
+            color: #000;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: var(--transition);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 20px rgba(212, 175, 55, 0.4);
+        }
+
+        /* === PREFERENCES PAGE === */
+        .dashboard-header {
+            text-align: center;
+            margin-bottom: 3rem;
+            width: 100%;
+        }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        .select-card {
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .select-card:hover {
+            transform: translateY(-10px) scale(1.02);
+            border-color: var(--primary);
+        }
+
+        .select-card h3 {
+            margin-bottom: 1rem;
+            color: var(--primary);
+        }
+
+        select {
+            width: 100%;
+            padding: 12px;
+            background: rgba(0,0,0,0.6);
+            color: white;
+            border: 1px solid var(--glass-border);
+            border-radius: 8px;
+            font-size: 1rem;
+            appearance: none;
+            cursor: pointer;
+        }
+
+        /* === SUGGESTIONS PAGE === */
+        .suggestions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 2rem;
+            width: 100%;
+            max-width: 1400px;
+            margin-top: 2rem;
+        }
+
+        .outfit-card {
+            border-radius: 15px;
+            overflow: hidden;
+            position: relative;
+            transition: var(--transition);
+            background: rgba(20, 20, 20, 0.8);
+        }
+
+        .outfit-card:hover {
+            transform: scale(1.03);
+            z-index: 10;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.8);
+        }
+
+        .outfit-img {
+            width: 100%;
+            height: 400px;
+            object-fit: cover;
+            border-bottom: 2px solid var(--primary);
+            background-color: #2a2a2a; /* Placeholder color while loading */
+        }
+
+        .outfit-info {
+            padding: 1.5rem;
+        }
+
+        .tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .tag {
+            background: rgba(212, 175, 55, 0.2);
+            color: var(--primary);
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .error-msg {
+            color: #ff4c4c;
+            margin-top: 10px;
+            font-size: 0.9rem;
+            display: none;
+        }
+
+        .nav-bar {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+        }
+
+        .back-btn {
+            background: transparent;
+            color: white;
+            border: 1px solid var(--glass-border);
+            padding: 10px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .back-btn:hover {
+            background: var(--primary);
+            color: black;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="canvas-container"></div>
+
+    <section id="view-login" class="view-section active">
+        <div class="login-container glass-panel">
+            <h1 class="logo-text">StyleSence</h1>
+            <p style="margin-bottom: 2rem; color: var(--text-muted);">AI-Powered Outfit Intelligence</p>
+            
+            <form id="loginForm" onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <i class="fas fa-user"></i>
+                    <input type="text" id="username" placeholder="Username" required autocomplete="off">
+                </div>
+                <div class="form-group">
+                    <i class="fas fa-lock"></i>
+                    <input type="password" id="password" placeholder="Password" required>
+                </div>
+                <div id="login-error" class="error-msg">Please enter a valid username and password.</div>
+                <button type="submit" class="btn" style="margin-top: 1rem;">Authenticate</button>
+            </form>
+        </div>
+    </section>
+
+    <section id="view-preferences" class="view-section">
+        <div class="dashboard-header">
+            <h1 class="logo-text" style="font-size: 2.5rem;">Configure Your Vibe</h1>
+            <p>Select your requirements to generate highly accurate suggestions.</p>
+        </div>
+
+        <div class="grid-container">
+            <div class="select-card glass-panel">
+                <i class="fas fa-calendar-alt fa-3x" style="color: var(--primary); margin-bottom: 1rem;"></i>
+                <h3>Occasion</h3>
+                <select id="sel-occasion">
+                    <option value="all">Any Occasion</option>
+                    <option value="casual">Casual / Daily</option>
+                    <option value="formal">Formal / Corporate</option>
+                    <option value="party">Party / Night Out</option>
+                </select>
+            </div>
+
+            <div class="select-card glass-panel">
+                <i class="fas fa-cut fa-3x" style="color: var(--primary); margin-bottom: 1rem;"></i>
+                <h3>Hair Style</h3>
+                <select id="sel-hair">
+                    <option value="all">Any Hair Style</option>
+                    <option value="short">Short / Fade</option>
+                    <option value="long">Long / Flowing</option>
+                </select>
+            </div>
+
+            <div class="select-card glass-panel">
+                <i class="fas fa-mask fa-3x" style="color: var(--primary); margin-bottom: 1rem;"></i>
+                <h3>Aesthetic</h3>
+                <select id="sel-vibe">
+                    <option value="all">Any Aesthetic</option>
+                    <option value="minimalist">Minimalist / Clean</option>
+                    <option value="streetwear">Streetwear</option>
+                    <option value="luxury">High-End Luxury</option>
+                </select>
+            </div>
+        </div>
+
+        <button class="btn" onclick="generateOutfits()" style="max-width: 400px; margin-top: 3rem;">
+            <i class="fas fa-magic"></i> Generate 3D Suggestions
+        </button>
+    </section>
+
+    <section id="view-results" class="view-section">
+        <div class="nav-bar">
+            <button class="back-btn" onclick="switchView('view-preferences')">
+                <i class="fas fa-arrow-left"></i> Adjust Filters
+            </button>
+        </div>
+        
+        <div class="dashboard-header" style="margin-top: 3rem;">
+            <h1 class="logo-text" style="font-size: 2.5rem;">Your Curated Looks</h1>
+            <p id="results-meta">Based on your highly specific parameters.</p>
+        </div>
+
+        <div id="suggestions-container" class="suggestions-grid">
+            </div>
+    </section>
+
+    <script>
+        /* -------------------------------------------------------------------------- */
+        /* 1. THREE.JS 3D DYNAMIC BACKGROUND ENGINE                                   */
+        /* -------------------------------------------------------------------------- */
+        const init3DBackground = () => {
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+            
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+            const geometry = new THREE.IcosahedronGeometry(1, 0);
+            const material = new THREE.MeshBasicMaterial({ 
+                color: 0xd4af37, 
+                wireframe: true,
+                transparent: true,
+                opacity: 0.15
+            });
+
+            const particles = [];
+            for(let i = 0; i < 50; i++) {
+                const mesh = new THREE.Mesh(geometry, material);
+                mesh.position.set(
+                    (Math.random() - 0.5) * 40,
+                    (Math.random() - 0.5) * 40,
+                    (Math.random() - 0.5) * 40
+                );
+                mesh.rotation.set(Math.random(), Math.random(), Math.random());
+                const scale = Math.random() * 2;
+                mesh.scale.set(scale, scale, scale);
+                scene.add(mesh);
+                particles.push(mesh);
+            }
+
+            camera.position.z = 15;
+
+            const animate = () => {
+                requestAnimationFrame(animate);
+                particles.forEach(p => {
+                    p.rotation.x += 0.001;
+                    p.rotation.y += 0.002;
+                });
+                renderer.render(scene, camera);
+            };
+
+            animate();
+
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+        };
+
+        init3DBackground();
+
+        /* -------------------------------------------------------------------------- */
+        /* 2. DATA STRUCTURES (FIXED IMAGE URLs & EXPANDED DB)                        */
+        /* -------------------------------------------------------------------------- */
+        // Updated with reliable parameters to ensure images render correctly
+        const outfitDatabase = [
+            {
+                id: 1,
+                name: "The Urban Architect",
+                image: "https://images.unsplash.com/photo-1516826957135-733141151156?w=600&fit=crop",
+                desc: "Sleek monochrome layers ideal for dynamic city environments.",
+                occasion: "casual", hair: "short", vibe: "minimalist"
+            },
+            {
+                id: 2,
+                name: "Midnight Gala",
+                image: "https://images.unsplash.com/photo-1594938298598-70f70df85c22?w=600&fit=crop",
+                desc: "A tailored velvet tuxedo piece ensuring a striking presence.",
+                occasion: "formal", hair: "short", vibe: "luxury"
+            },
+            {
+                id: 3,
+                name: "Retro Pulse",
+                image: "https://images.unsplash.com/photo-1550614000-4b95d4ebf0ae?w=600&fit=crop",
+                desc: "Oversized graphic tee paired with vintage wash denim.",
+                occasion: "party", hair: "long", vibe: "streetwear"
+            },
+            {
+                id: 4,
+                name: "Corporate Executive",
+                image: "https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=600&fit=crop",
+                desc: "Navy blue bespoke suit with a crisp white Oxford shirt.",
+                occasion: "formal", hair: "short", vibe: "minimalist"
+            },
+            {
+                id: 5,
+                name: "Neon Nights",
+                image: "https://images.unsplash.com/photo-1529139574466-a303027c028b?w=600&fit=crop",
+                desc: "Tech-wear inspired cargo setup with reflective accents.",
+                occasion: "party", hair: "long", vibe: "streetwear"
+            },
+            {
+                id: 6,
+                name: "Coffee Shop Coder",
+                image: "https://images.unsplash.com/photo-1489987707023-af823c576562?w=600&fit=crop",
+                desc: "Comfortable oversized knit sweater and dark chinos.",
+                occasion: "casual", hair: "long", vibe: "minimalist"
+            },
+            {
+                id: 7,
+                name: "Harajuku Drift",
+                image: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=600&fit=crop",
+                desc: "Layered silhouettes, heavy boots, and statement outerwear.",
+                occasion: "casual", hair: "short", vibe: "streetwear"
+            },
+            {
+                id: 8,
+                name: "High Society",
+                image: "https://images.unsplash.com/photo-1600091166971-7f9faad6c1e2?w=600&fit=crop",
+                desc: "Sharp, elegant blazer tailored perfectly to your form.",
+                occasion: "formal", hair: "long", vibe: "luxury"
+            }
+        ];
+
+        /* -------------------------------------------------------------------------- */
+        /* 3. APPLICATION LOGIC & STATE MANAGEMENT                                    */
+        /* -------------------------------------------------------------------------- */
+        
+        const switchView = (targetId) => {
+            const views = document.querySelectorAll('.view-section');
+            views.forEach(view => {
+                view.classList.remove('active');
+                setTimeout(() => {
+                    if(!view.classList.contains('active')) view.style.display = 'none';
+                }, 600);
+            });
+
+            setTimeout(() => {
+                const target = document.getElementById(targetId);
+                target.style.display = 'flex';
+                void target.offsetWidth;
+                target.classList.add('active');
+            }, 600);
+        };
+
+        const handleLogin = (e) => {
+            e.preventDefault();
+            const user = document.getElementById('username').value;
+            const pass = document.getElementById('password').value;
+            const error = document.getElementById('login-error');
+
+            if(user.length > 0 && pass.length > 0) {
+                error.style.display = 'none';
+                switchView('view-preferences');
+            } else {
+                error.style.display = 'block';
+            }
+        };
+
+        const generateOutfits = () => {
+            const filters = {
+                occasion: document.getElementById('sel-occasion').value,
+                hair: document.getElementById('sel-hair').value,
+                vibe: document.getElementById('sel-vibe').value
+            };
+
+            const results = outfitDatabase.filter(outfit => {
+                const matchOccasion = filters.occasion === 'all' || outfit.occasion === filters.occasion;
+                const matchHair = filters.hair === 'all' || outfit.hair === filters.hair;
+                const matchVibe = filters.vibe === 'all' || outfit.vibe === filters.vibe;
+                return matchOccasion && matchHair && matchVibe;
+            });
+
+            renderResults(results);
+            switchView('view-results');
+        };
+
+        const renderResults = (data) => {
+            const container = document.getElementById('suggestions-container');
+            const metaInfo = document.getElementById('results-meta');
+            container.innerHTML = '';
+
+            if (data.length === 0) {
+                metaInfo.innerText = "No exact matches found for that specific combination. Try selecting 'Any' for one of the filters!";
+                return;
+            }
+
+            metaInfo.innerText = `Found ${data.length} highly accurate suggestions based on your profile.`;
+
+            // Fallback image used if the primary network request fails
+            const fallbackImg = "https://images.unsplash.com/photo-1489987707023-af823c576562?w=600&fit=crop";
+
+            data.forEach((item, index) => {
+                const delay = index * 0.1;
+                const card = document.createElement('div');
+                card.className = 'outfit-card glass-panel';
+                card.style.animation = `float 6s ease-in-out infinite ${delay}s`;
+                
+                // Note the onerror attribute added to the img tag for bug prevention
+                card.innerHTML = `
+                    <img src="${item.image}" alt="${item.name}" class="outfit-img" onerror="this.onerror=null; this.src='${fallbackImg}';">
+                    <div class="outfit-info">
+                        <h2 style="margin-bottom: 10px; color: var(--primary);">${item.name}</h2>
+                        <p style="color: var(--text-muted); font-size: 0.9rem;">${item.desc}</p>
+                        <div class="tags">
+                            <span class="tag"><i class="fas fa-tag"></i> ${item.occasion}</span>
+                            <span class="tag"><i class="fas fa-cut"></i> ${item.hair}</span>
+                            <span class="tag"><i class="fas fa-star"></i> ${item.vibe}</span>
+                        </div>
+                        <button class="btn" style="margin-top: 15px; padding: 10px; font-size: 0.9rem;">
+                            View Details in 3D
+                        </button>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        };
+    </script>
+</body>
+</html>
